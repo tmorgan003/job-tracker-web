@@ -103,6 +103,7 @@
         <input type="file" name="file" accept=".csv" required aria-label="CSV file to import">
         <button type="submit" class="btn btn-small">Import CSV</button>
     </form>
+    <a class="btn btn-small" href="{{ url_for('import_csv_template') }}">Download Import Template</a>
     <a class="btn btn-small" href="{{ url_for('backup') }}">Backup Database</a>
 </section>
 

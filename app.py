@@ -500,6 +500,73 @@ def export_csv():
     )
 
 
+@app.route("/import/template")
+def import_csv_template():
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(CSV_COLUMNS)
+    writer.writerow(
+        [
+            "Acme Corp",
+            "Senior Software Engineer",
+            "Backend role building payments infra.",
+            date.today().isoformat(),
+            "applied",
+            "Referred by Jane.",
+            "",
+            "https://example.com/jobs/123",
+            "Jane Recruiter",
+            "jane@example.com",
+            "https://linkedin.com/in/janerecruiter",
+        ]
+    )
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=job_applications_import_template.csv"},
+    )
+
+
+IMPORT_DATE_FORMATS = (
+    "%m/%d/%Y",
+    "%m/%d/%y",
+    "%d/%m/%Y",
+    "%Y/%m/%d",
+    "%m-%d-%Y",
+    "%d-%m-%Y",
+    "%B %d, %Y",
+    "%b %d, %Y",
+)
+
+STATUS_LABEL_TO_KEY = {label.lower(): key for key, label in STATUS_LABELS.items()}
+
+
+def parse_import_date(value):
+    value = (value or "").strip()
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value).isoformat()
+    except ValueError:
+        pass
+    for fmt in IMPORT_DATE_FORMATS:
+        try:
+            return datetime.strptime(value, fmt).date().isoformat()
+        except ValueError:
+            continue
+    return None
+
+
+def parse_import_status(value):
+    value = (value or "").strip()
+    if not value:
+        return None
+    key = value.lower().replace(" ", "_").replace("-", "_")
+    if key in STATUS_LABELS:
+        return key
+    return STATUS_LABEL_TO_KEY.get(value.lower())
+
+
 @app.route("/import", methods=["POST"])
 def import_csv():
     file = request.files.get("file")
@@ -525,20 +592,9 @@ def import_csv():
         if not company or not role:
             skipped += 1
             continue
-        status = (row.get("status") or "").strip()
-        if status not in STATUSES:
-            status = "applied"
-        date_applied = (row.get("date_applied") or "").strip()
-        try:
-            date.fromisoformat(date_applied)
-        except ValueError:
-            date_applied = today
-        follow_up_date = (row.get("follow_up_date") or "").strip() or None
-        try:
-            if follow_up_date:
-                date.fromisoformat(follow_up_date)
-        except ValueError:
-            follow_up_date = None
+        status = parse_import_status(row.get("status")) or "applied"
+        date_applied = parse_import_date(row.get("date_applied")) or today
+        follow_up_date = parse_import_date(row.get("follow_up_date"))
 
         db.execute(
             """
