@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card">
+    <h2>Add Application</h2>
+    <form method="post" action="{{ url_for('add') }}" class="app-form" data-validate-required>
+        <div class="form-row">
+            <label>
+                Company
+                <input type="text" name="company" id="new-company" required>
+            </label>
+            <label>
+                Role
+                <input type="text" name="role" required>
+            </label>
+            <label>
+                Date Applied
+                <input type="date" name="date_applied" value="{{ today }}" required>
+            </label>
+            <label>
+                Status
+                <select name="status">
+                    {% for s in statuses %}
+                    <option value="{{ s }}" {% if s == 'applied' %}selected{% endif %}>{{ status_labels[s] }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Follow-up Date
+                <input type="date" name="follow_up_date">
+            </label>
+        </div>
+        <div class="form-row">
+            <label class="grow">
+                Job Description
+                <textarea name="job_description" rows="2"></textarea>
+            </label>
+            <label class="grow">
+                Notes
+                <textarea name="notes" rows="2"></textarea>
+            </label>
+        </div>
+        <div class="form-row">
+            <label class="grow">
+                Job Posting URL
+                <input type="url" name="job_url" placeholder="https://…">
+            </label>
+        </div>
+        <fieldset class="recruiter-fields">
+            <legend>Recruiter / Hiring Manager (optional)</legend>
+            <div class="form-row">
+                <label>
+                    Name
+                    <input type="text" name="recruiter_name">
+                </label>
+                <label>
+                    Email
+                    <input type="email" name="recruiter_email">
+                </label>
+                <label class="grow">
+                    LinkedIn
+                    <input type="url" name="recruiter_linkedin" placeholder="https://linkedin.com/in/…">
+                </label>
+            </div>
+        </fieldset>
+        <button type="submit" class="btn btn-primary">Add Application</button>
+    </form>
+</section>
+
+<section class="card stats-bar">
+    <div class="stat-tile">
+        <span class="stat-value">{{ stats.total_applied }}</span>
+        <span class="stat-label">Total Applied</span>
+    </div>
+    <div class="stat-tile">
+        <span class="stat-value">{{ stats.active_pipeline }}</span>
+        <span class="stat-label">Active Pipeline</span>
+    </div>
+    <div class="stat-tile">
+        <span class="stat-value">{{ stats.interview_rate }}%</span>
+        <span class="stat-label">Interview Rate</span>
+    </div>
+    <div class="stat-tile">
+        <span class="stat-value">{{ stats.offer_rate }}%</span>
+        <span class="stat-label">Offer Rate</span>
+    </div>
+    <div class="funnel">
+        {% for label, count in stats.funnel %}
+        <div class="funnel-row">
+            <span class="funnel-label">{{ label }}</span>
+            <div class="funnel-track">
+                <div class="funnel-bar" style="width: {{ (count / stats.funnel[0][1] * 100) if stats.funnel[0][1] else 0 }}%"></div>
+            </div>
+            <span class="funnel-count">{{ count }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="card data-tools">
+    <a class="btn btn-small" href="{{ url_for('export_csv') }}">Export CSV</a>
+    <form method="post" action="{{ url_for('import_csv') }}" enctype="multipart/form-data" class="import-form">
+        <input type="file" name="file" accept=".csv" required aria-label="CSV file to import">
+        <button type="submit" class="btn btn-small">Import CSV</button>
+    </form>
+    <a class="btn btn-small" href="{{ url_for('backup') }}">Backup Database</a>
+</section>
+
+<section class="card">
+    <div class="panel-head">
+        <h2>Applications</h2>
+        {% if applications %}<span class="count-pill">{{ applications|length }}</span>{% endif %}
+    </div>
+
+    <form method="get" action="{{ url_for('index') }}" class="filter-bar">
+        <input type="hidden" name="sort" value="{{ sort }}">
+        <input type="hidden" name="dir" value="{{ direction }}">
+        <input type="search" name="q" id="search-input" value="{{ query }}" placeholder="Search by company&hellip;" class="filter-search" aria-label="Search by company">
+        <select name="status" class="filter-status" aria-label="Filter by status" onchange="this.form.submit()">
+            <option value="">All statuses</option>
+            {% for s in statuses %}
+            <option value="{{ s }}" {% if s == status_filter %}selected{% endif %}>{{ status_labels[s] }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-small">Search</button>
+        {% if filters_active %}<a href="{{ url_for('index') }}" class="filter-clear">Clear</a>{% endif %}
+    </form>
+
+    {% if applications %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Role</th>
+                    <th>
+                        <a class="sort-link" href="{{ url_for('index', q=query, status=status_filter, sort='date_applied', dir='asc' if sort == 'date_applied' and direction == 'desc' else 'desc') }}">
+                            Applied{% if sort == 'date_applied' %}<span class="sort-arrow">{{ '↓' if direction == 'desc' else '↑' }}</span>{% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" href="{{ url_for('index', q=query, status=status_filter, sort='status', dir='asc' if sort == 'status' and direction == 'desc' else 'desc') }}">
+                            Status{% if sort == 'status' %}<span class="sort-arrow">{{ '↓' if direction == 'desc' else '↑' }}</span>{% endif %}
+                        </a>
+                    </th>
+                    <th>
+                        <a class="sort-link" href="{{ url_for('index', q=query, status=status_filter, sort='follow_up_date', dir='asc' if sort == 'follow_up_date' and direction == 'desc' else 'desc') }}">
+                            Follow-up{% if sort == 'follow_up_date' %}<span class="sort-arrow">{{ '↓' if direction == 'desc' else '↑' }}</span>{% endif %}
+                        </a>
+                    </th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in applications %}
+                <tr class="{% if a.follow_up_passed %}row-followup-due{% endif %}">
+                    <td data-label="Company">{{ a.company }}</td>
+                    <td data-label="Role">
+                        <div class="role-cell">
+                            {{ a.role }}
+                            {% if a.job_url %}<a class="job-url-link" href="{{ a.job_url }}" target="_blank" rel="noopener noreferrer">Posting ↗</a>{% endif %}
+                            {% if a.job_description %}<div class="role-snippet">{{ a.job_description }}</div>{% endif %}
+                        </div>
+                    </td>
+                    <td data-label="Applied">
+                        {{ a.date_applied }}
+                        {% if a.days_since_applied is not none %}<div class="days-sub">{{ a.days_since_applied }}d ago</div>{% endif %}
+                    </td>
+                    <td data-label="Status">
+                        <span class="status status-{{ a.status }}"><span class="status-dot" aria-hidden="true"></span>{{ status_labels[a.status] }}</span>
+                        {% if a.days_since_status_change is not none %}<div class="days-sub">{{ a.days_since_status_change }}d in status</div>{% endif %}
+                    </td>
+                    <td data-label="Follow-up">
+                        {% if a.follow_up_date %}
+                        <span class="{% if a.follow_up_passed %}followup-overdue{% endif %}">{{ a.follow_up_date }}</span>
+                        {% else %}
+                        <span class="empty-cell">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="wrap" data-label="Notes"><div class="clamp">{{ a.notes }}</div></td>
+                    <td class="actions" data-label="Actions">
+                        <a class="btn btn-small" href="{{ url_for('edit', app_id=a.id) }}">Edit</a>
+                        <a class="btn btn-small btn-details" href="#details-{{ a.id }}">Show Details</a>
+                        <form method="post" action="{{ url_for('delete', app_id=a.id) }}">
+                            <button type="submit" class="btn btn-small btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% for a in applications %}
+    <div id="details-{{ a.id }}" class="modal-overlay">
+        <div class="modal">
+            <a href="#" class="modal-close" aria-label="Close">&times;</a>
+            <h3>{{ a.company }} &mdash; {{ a.role }}</h3>
+            <span class="status status-{{ a.status }}"><span class="status-dot" aria-hidden="true"></span>{{ status_labels[a.status] }}</span>
+            <p class="modal-label">Job Description</p>
+            <p class="modal-text">{{ a.job_description or "—" }}</p>
+            <p class="modal-label">Notes</p>
+            <p class="modal-text">{{ a.notes or "—" }}</p>
+            <p class="modal-label">Date Applied</p>
+            <p class="modal-text">{{ a.date_applied }}</p>
+            <p class="modal-label">Follow-up Date</p>
+            <p class="modal-text">{{ a.follow_up_date or "—" }}</p>
+            <p class="modal-label">Job Posting</p>
+            <p class="modal-text">{% if a.job_url %}<a href="{{ a.job_url }}" target="_blank" rel="noopener noreferrer">{{ a.job_url }}</a>{% else %}—{% endif %}</p>
+            <p class="modal-label">Recruiter / Hiring Manager</p>
+            <p class="modal-text">
+                {% if a.recruiter_name or a.recruiter_email or a.recruiter_linkedin %}
+                    {{ a.recruiter_name or "—" }}
+                    {% if a.recruiter_email %}&middot; <a href="mailto:{{ a.recruiter_email }}">{{ a.recruiter_email }}</a>{% endif %}
+                    {% if a.recruiter_linkedin %}&middot; <a href="{{ a.recruiter_linkedin }}" target="_blank" rel="noopener noreferrer">LinkedIn</a>{% endif %}
+                {% else %}—{% endif %}
+            </p>
+            <p class="modal-label">Interview Rounds</p>
+            {% set rounds = rounds_by_app.get(a.id, []) %}
+            {% if rounds %}
+            <ul class="round-timeline">
+                {% for r in rounds %}
+                <li>
+                    <span class="round-name">{{ r.round_name }}</span>
+                    {% if r.round_date %}<span class="round-date">{{ r.round_date }}</span>{% endif %}
+                    <span class="round-outcome round-outcome-{{ r.outcome }}">{{ round_outcome_labels[r.outcome] }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="modal-text">—</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    {% elif total_count == 0 %}
+    <p class="empty">No applications yet, add your first above.</p>
+    {% else %}
+    <p class="empty">No applications match your search. <a href="{{ url_for('index') }}">Clear filters</a></p>
+    {% endif %}
+</section>
+{% endblock %}

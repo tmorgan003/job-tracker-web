@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Local database (contains your personal application data)
+job_applications.db
+job_applications.db-journal
+job_applications.db-wal
+job_applications.db-shm
+*.bak
+*.bak-*
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

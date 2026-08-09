@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card">
+    <h2>Edit Application</h2>
+    <form method="post" action="{{ url_for('update', app_id=application.id) }}" class="app-form" data-validate-required>
+        <div class="form-row">
+            <label>
+                Company
+                <input type="text" name="company" value="{{ application.company }}" required>
+            </label>
+            <label>
+                Role
+                <input type="text" name="role" value="{{ application.role }}" required>
+            </label>
+            <label>
+                Date Applied
+                <input type="date" name="date_applied" value="{{ application.date_applied }}" required>
+            </label>
+            <label>
+                Status
+                <select name="status">
+                    {% for s in statuses %}
+                    <option value="{{ s }}" {% if s == application.status %}selected{% endif %}>{{ status_labels[s] }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Follow-up Date
+                <input type="date" name="follow_up_date" value="{{ application.follow_up_date or '' }}">
+            </label>
+        </div>
+        <div class="form-row">
+            <label class="grow">
+                Job Description
+                <textarea name="job_description" rows="3">{{ application.job_description }}</textarea>
+            </label>
+            <label class="grow">
+                Notes
+                <textarea name="notes" rows="3">{{ application.notes }}</textarea>
+            </label>
+        </div>
+        <div class="form-row">
+            <label class="grow">
+                Job Posting URL
+                <input type="url" name="job_url" value="{{ application.job_url or '' }}" placeholder="https://…">
+            </label>
+        </div>
+        <fieldset class="recruiter-fields">
+            <legend>Recruiter / Hiring Manager (optional)</legend>
+            <div class="form-row">
+                <label>
+                    Name
+                    <input type="text" name="recruiter_name" value="{{ application.recruiter_name or '' }}">
+                </label>
+                <label>
+                    Email
+                    <input type="email" name="recruiter_email" value="{{ application.recruiter_email or '' }}">
+                </label>
+                <label class="grow">
+                    LinkedIn
+                    <input type="url" name="recruiter_linkedin" value="{{ application.recruiter_linkedin or '' }}" placeholder="https://linkedin.com/in/…">
+                </label>
+            </div>
+        </fieldset>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a class="btn" href="{{ url_for('index') }}">Cancel</a>
+        </div>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Interview Rounds</h2>
+    {% if rounds %}
+    <ul class="round-list">
+        {% for r in rounds %}
+        <li class="round-item">
+            <div class="round-item-info">
+                <span class="round-name">{{ r.round_name }}</span>
+                {% if r.round_date %}<span class="round-date">{{ r.round_date }}</span>{% endif %}
+                <span class="round-outcome round-outcome-{{ r.outcome }}">{{ round_outcome_labels[r.outcome] }}</span>
+            </div>
+            <form method="post" action="{{ url_for('delete_round', round_id=r.id) }}">
+                <button type="submit" class="btn btn-small btn-danger">Remove</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">No interview rounds logged yet.</p>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('add_round', app_id=application.id) }}" class="app-form round-form">
+        <div class="form-row">
+            <label>
+                Round
+                <input type="text" name="round_name" placeholder="e.g. Round 1 — Phone Screen" required>
+            </label>
+            <label>
+                Date
+                <input type="date" name="round_date">
+            </label>
+            <label>
+                Outcome
+                <select name="outcome">
+                    {% for o in round_outcomes %}
+                    <option value="{{ o }}">{{ round_outcome_labels[o] }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+        <button type="submit" class="btn btn-small">Add Round</button>
+    </form>
+</section>
+{% endblock %}
