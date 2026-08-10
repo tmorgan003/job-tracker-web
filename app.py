@@ -222,6 +222,188 @@ def compute_stats(db):
     }
 
 
+def avg_days(values):
+    return round(sum(values) / len(values), 1) if values else None
+
+
+def compute_reports(db):
+    today = date.today()
+
+    apps = db.execute(
+        "SELECT id, company, role, date_applied, status, last_status_change, "
+        "follow_up_date, recruiter_name, recruiter_email, recruiter_linkedin "
+        "FROM applications WHERE deleted_at IS NULL"
+    ).fetchall()
+    total_count = len(apps)
+    considered = [a for a in apps if a["status"] != "saved"]
+    total_considered = len(considered)
+
+    round_rows = db.execute(
+        "SELECT application_id, round_name, round_date, outcome FROM interview_rounds"
+    ).fetchall()
+    rounds_by_app_id = {}
+    for r in round_rows:
+        rounds_by_app_id.setdefault(r["application_id"], []).append(r)
+
+    def reached_interview(a):
+        return a["id"] in rounds_by_app_id or a["status"] in INTERVIEW_STAGE_STATUSES
+
+    offer_count = sum(1 for a in considered if a["status"] == "offer")
+    rejected_count = sum(1 for a in considered if a["status"] == "rejected")
+    interview_reached = sum(1 for a in considered if reached_interview(a))
+
+    overview = {
+        "total_applications": total_count,
+        "total_applied": total_considered,
+        "active_pipeline": sum(1 for a in considered if a["status"] in ACTIVE_STATUSES),
+        "interview_rate": round(interview_reached / total_considered * 100) if total_considered else 0,
+        "offer_rate": round(offer_count / total_considered * 100) if total_considered else 0,
+        "rejection_rate": round(rejected_count / total_considered * 100) if total_considered else 0,
+    }
+
+    # Status breakdown, most common first.
+    status_counts = {}
+    for a in apps:
+        status_counts[a["status"]] = status_counts.get(a["status"], 0) + 1
+    status_breakdown = [
+        (STATUS_LABELS[s], status_counts.get(s, 0)) for s in STATUSES if status_counts.get(s, 0) > 0
+    ]
+    status_breakdown.sort(key=lambda item: item[1], reverse=True)
+    max_status_count = max((c for _, c in status_breakdown), default=0)
+
+    # Applications submitted per month, last 12 months.
+    month_keys = []
+    for offset in range(11, -1, -1):
+        total_month = today.month - 1 - offset
+        year = today.year + total_month // 12
+        month = total_month % 12 + 1
+        month_keys.append(f"{year:04d}-{month:02d}")
+    month_counts = {}
+    for a in considered:
+        key = (a["date_applied"] or "")[:7]
+        if key in month_keys:
+            month_counts[key] = month_counts.get(key, 0) + 1
+    volume_by_month = [
+        (datetime.strptime(k, "%Y-%m").strftime("%b %Y"), month_counts.get(k, 0)) for k in month_keys
+    ]
+    max_month_count = max((c for _, c in volume_by_month), default=0)
+
+    # Time-in-pipeline metrics.
+    days_to_interview, days_to_offer, days_to_rejection, active_ages = [], [], [], []
+    for a in apps:
+        try:
+            applied = date.fromisoformat(a["date_applied"])
+        except (TypeError, ValueError):
+            continue
+        app_rounds = [r for r in rounds_by_app_id.get(a["id"], []) if r["round_date"]]
+        if app_rounds:
+            try:
+                first_round = min(date.fromisoformat(r["round_date"]) for r in app_rounds)
+                days_to_interview.append((first_round - applied).days)
+            except ValueError:
+                pass
+        if a["status"] == "offer" and a["last_status_change"]:
+            try:
+                days_to_offer.append((date.fromisoformat(a["last_status_change"]) - applied).days)
+            except ValueError:
+                pass
+        if a["status"] == "rejected" and a["last_status_change"]:
+            try:
+                days_to_rejection.append((date.fromisoformat(a["last_status_change"]) - applied).days)
+            except ValueError:
+                pass
+        if a["status"] in ACTIVE_STATUSES:
+            active_ages.append((today - applied).days)
+
+    time_metrics = {
+        "avg_days_to_interview": avg_days(days_to_interview),
+        "avg_days_to_offer": avg_days(days_to_offer),
+        "avg_days_to_rejection": avg_days(days_to_rejection),
+        "avg_active_age": avg_days(active_ages),
+        "oldest_active_age": max(active_ages) if active_ages else None,
+    }
+
+    # Interview round performance, grouped by round name.
+    round_perf = {}
+    for r in round_rows:
+        entry = round_perf.setdefault(r["round_name"], {o: 0 for o in ROUND_OUTCOMES})
+        entry[r["outcome"]] = entry.get(r["outcome"], 0) + 1
+    round_performance = []
+    for name, counts in round_perf.items():
+        total = sum(counts.values())
+        decided = counts["passed"] + counts["failed"]
+        pass_rate = round(counts["passed"] / decided * 100) if decided else None
+        round_performance.append(
+            {"name": name, "total": total, "counts": counts, "pass_rate": pass_rate}
+        )
+    round_performance.sort(key=lambda r: r["total"], reverse=True)
+
+    # Repeat applications by company.
+    company_stats = {}
+    for a in apps:
+        key = a["company"].strip().lower()
+        entry = company_stats.setdefault(key, {"company": a["company"], "count": 0, "offers": 0, "rejections": 0})
+        entry["count"] += 1
+        if a["status"] == "offer":
+            entry["offers"] += 1
+        if a["status"] == "rejected":
+            entry["rejections"] += 1
+    repeat_companies = sorted(
+        (c for c in company_stats.values() if c["count"] > 1),
+        key=lambda c: c["count"],
+        reverse=True,
+    )[:10]
+
+    # Recruiter contact impact.
+    def has_recruiter(a):
+        return bool(a["recruiter_name"] or a["recruiter_email"] or a["recruiter_linkedin"])
+
+    with_recruiter = [a for a in considered if has_recruiter(a)]
+    without_recruiter = [a for a in considered if not has_recruiter(a)]
+
+    def interview_rate(subset):
+        return round(sum(1 for a in subset if reached_interview(a)) / len(subset) * 100) if subset else None
+
+    recruiter_impact = {
+        "with_count": len(with_recruiter),
+        "with_rate": interview_rate(with_recruiter),
+        "without_count": len(without_recruiter),
+        "without_rate": interview_rate(without_recruiter),
+    }
+
+    # Follow-up compliance.
+    overdue_followups = []
+    upcoming_followups = []
+    for a in apps:
+        if not a["follow_up_date"] or a["status"] in TERMINAL_STATUSES:
+            continue
+        try:
+            fu = date.fromisoformat(a["follow_up_date"])
+        except ValueError:
+            continue
+        if fu < today:
+            overdue_followups.append(a)
+        elif fu <= today + timedelta(days=7):
+            upcoming_followups.append(a)
+    overdue_followups.sort(key=lambda a: a["follow_up_date"])
+    upcoming_followups.sort(key=lambda a: a["follow_up_date"])
+
+    return {
+        "overview": overview,
+        "status_breakdown": status_breakdown,
+        "max_status_count": max_status_count,
+        "volume_by_month": volume_by_month,
+        "max_month_count": max_month_count,
+        "time_metrics": time_metrics,
+        "round_performance": round_performance,
+        "round_outcome_labels": ROUND_OUTCOME_LABELS,
+        "repeat_companies": repeat_companies,
+        "recruiter_impact": recruiter_impact,
+        "overdue_followups": overdue_followups,
+        "upcoming_followups": upcoming_followups,
+    }
+
+
 def annotate_application(row):
     a = dict(row)
     today = date.today()
@@ -302,6 +484,13 @@ def index():
         filters_active=bool(query or status_filter),
         stats=compute_stats(db),
     )
+
+
+@app.route("/reports")
+def reports():
+    db = get_db()
+    purge_expired_deletions(db)
+    return render_template("reports.html", reports=compute_reports(db), today=date.today().isoformat())
 
 
 @app.route("/add", methods=["POST"])

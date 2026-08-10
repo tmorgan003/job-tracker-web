@@ -27,6 +27,10 @@
                 </span>
                 <h1>Job Application Tracker</h1>
             </a>
+            <nav class="app-nav">
+                <a class="app-nav-link {{ 'active' if request.endpoint == 'index' }}" href="{{ url_for('index') }}">Tracker</a>
+                <a class="app-nav-link {{ 'active' if request.endpoint == 'reports' }}" href="{{ url_for('reports') }}">Reports</a>
+            </nav>
             <button type="button" id="theme-toggle" class="btn btn-small theme-toggle" aria-label="Toggle dark mode">
                 <span class="theme-toggle-icon" aria-hidden="true">◐</span>
             </button>

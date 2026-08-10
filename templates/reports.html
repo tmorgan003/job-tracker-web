@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Reports — Job Application Tracker{% endblock %}
+
+{% block content %}
+<section class="card">
+    <div class="panel-head">
+        <h2>Overview</h2>
+    </div>
+    <div class="stats-bar">
+        <div class="stat-tile">
+            <span class="stat-value">{{ reports.overview.total_applications }}</span>
+            <span class="stat-label">Total Records</span>
+        </div>
+        <div class="stat-tile">
+            <span class="stat-value">{{ reports.overview.total_applied }}</span>
+            <span class="stat-label">Applications Sent</span>
+        </div>
+        <div class="stat-tile">
+            <span class="stat-value">{{ reports.overview.active_pipeline }}</span>
+            <span class="stat-label">Active Pipeline</span>
+        </div>
+        <div class="stat-tile">
+            <span class="stat-value">{{ reports.overview.interview_rate }}%</span>
+            <span class="stat-label">Interview Rate</span>
+        </div>
+        <div class="stat-tile">
+            <span class="stat-value">{{ reports.overview.offer_rate }}%</span>
+            <span class="stat-label">Offer Rate</span>
+        </div>
+        <div class="stat-tile">
+            <span class="stat-value">{{ reports.overview.rejection_rate }}%</span>
+            <span class="stat-label">Rejection Rate</span>
+        </div>
+    </div>
+</section>
+
+<section class="card report-grid">
+    <div>
+        <h2>Application Volume (Last 12 Months)</h2>
+        {% if reports.max_month_count > 0 %}
+        <div class="bar-list">
+            {% for label, count in reports.volume_by_month %}
+            <div class="bar-row">
+                <span class="bar-label">{{ label }}</span>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: {{ (count / reports.max_month_count * 100) if reports.max_month_count else 0 }}%"></div>
+                </div>
+                <span class="bar-count">{{ count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="report-empty">No applications submitted yet.</p>
+        {% endif %}
+    </div>
+    <div>
+        <h2>Status Breakdown</h2>
+        {% if reports.status_breakdown %}
+        <div class="bar-list">
+            {% for label, count in reports.status_breakdown %}
+            <div class="bar-row">
+                <span class="bar-label">{{ label }}</span>
+                <div class="bar-track">
+                    <div class="bar-fill" style="width: {{ (count / reports.max_status_count * 100) if reports.max_status_count else 0 }}%"></div>
+                </div>
+                <span class="bar-count">{{ count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="report-empty">No applications yet.</p>
+        {% endif %}
+    </div>
+</section>
+
+<section class="card report-grid">
+    <div>
+        <h2>Time in Pipeline</h2>
+        <div class="metric-list">
+            <div class="metric-row">
+                <span class="metric-label">Avg. days to first interview</span>
+                <span class="metric-value">{{ reports.time_metrics.avg_days_to_interview ~ ' days' if reports.time_metrics.avg_days_to_interview is not none else '—' }}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Avg. days to offer</span>
+                <span class="metric-value">{{ reports.time_metrics.avg_days_to_offer ~ ' days' if reports.time_metrics.avg_days_to_offer is not none else '—' }}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Avg. days to rejection</span>
+                <span class="metric-value">{{ reports.time_metrics.avg_days_to_rejection ~ ' days' if reports.time_metrics.avg_days_to_rejection is not none else '—' }}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Avg. age of active applications</span>
+                <span class="metric-value">{{ reports.time_metrics.avg_active_age ~ ' days' if reports.time_metrics.avg_active_age is not none else '—' }}</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Oldest active application</span>
+                <span class="metric-value">{{ reports.time_metrics.oldest_active_age ~ ' days' if reports.time_metrics.oldest_active_age is not none else '—' }}</span>
+            </div>
+        </div>
+    </div>
+    <div>
+        <h2>Recruiter Contact Impact</h2>
+        <div class="impact-compare">
+            <div class="impact-col">
+                <span class="stat-value">{{ (reports.recruiter_impact.with_rate ~ '%') if reports.recruiter_impact.with_rate is not none else '—' }}</span>
+                <span class="stat-label">Interview Rate — With Recruiter</span>
+                <span class="impact-count">{{ reports.recruiter_impact.with_count }} application(s)</span>
+            </div>
+            <div class="impact-col">
+                <span class="stat-value">{{ (reports.recruiter_impact.without_rate ~ '%') if reports.recruiter_impact.without_rate is not none else '—' }}</span>
+                <span class="stat-label">Interview Rate — No Recruiter</span>
+                <span class="impact-count">{{ reports.recruiter_impact.without_count }} application(s)</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <div class="panel-head">
+        <h2>Interview Round Performance</h2>
+    </div>
+    {% if reports.round_performance %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Round</th>
+                    <th>Total</th>
+                    <th>Passed</th>
+                    <th>Failed</th>
+                    <th>Pending</th>
+                    <th>Cancelled</th>
+                    <th>Pass Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reports.round_performance %}
+                <tr>
+                    <td data-label="Round">{{ r.name }}</td>
+                    <td data-label="Total">{{ r.total }}</td>
+                    <td data-label="Passed">{{ r.counts.passed }}</td>
+                    <td data-label="Failed">{{ r.counts.failed }}</td>
+                    <td data-label="Pending">{{ r.counts.pending }}</td>
+                    <td data-label="Cancelled">{{ r.counts.cancelled }}</td>
+                    <td data-label="Pass Rate">{{ (r.pass_rate ~ '%') if r.pass_rate is not none else '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="report-empty">No interview rounds logged yet.</p>
+    {% endif %}
+</section>
+
+<section class="card report-grid">
+    <div>
+        <h2>Repeat Applications by Company</h2>
+        {% if reports.repeat_companies %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Company</th>
+                        <th>Applications</th>
+                        <th>Offers</th>
+                        <th>Rejections</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in reports.repeat_companies %}
+                    <tr>
+                        <td data-label="Company">{{ c.company }}</td>
+                        <td data-label="Applications">{{ c.count }}</td>
+                        <td data-label="Offers">{{ c.offers }}</td>
+                        <td data-label="Rejections">{{ c.rejections }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="report-empty">No company has more than one application yet.</p>
+        {% endif %}
+    </div>
+    <div>
+        <h2>Follow-ups</h2>
+        <p class="report-subhead">Overdue ({{ reports.overdue_followups|length }})</p>
+        {% if reports.overdue_followups %}
+        <ul class="followup-list">
+            {% for a in reports.overdue_followups %}
+            <li class="followup-item">
+                <span><span class="followup-company">{{ a.company }}</span> <span class="followup-role">— {{ a.role }}</span></span>
+                <span class="followup-date followup-overdue">{{ a.follow_up_date }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="report-empty">Nothing overdue.</p>
+        {% endif %}
+        <p class="report-subhead" style="margin-top: 1.1rem">Upcoming, Next 7 Days ({{ reports.upcoming_followups|length }})</p>
+        {% if reports.upcoming_followups %}
+        <ul class="followup-list">
+            {% for a in reports.upcoming_followups %}
+            <li class="followup-item">
+                <span><span class="followup-company">{{ a.company }}</span> <span class="followup-role">— {{ a.role }}</span></span>
+                <span class="followup-date">{{ a.follow_up_date }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="report-empty">Nothing coming up.</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

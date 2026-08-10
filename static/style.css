@@ -1165,4 +1165,205 @@ tr.row-followup-due:hover td {
     .round-item form button {
         width: 100%;
     }
+
+    .report-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .impact-compare {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Nav */
+.app-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: auto;
+}
+
+.app-nav-link {
+    padding: 0.45rem 0.85rem;
+    border-radius: 7px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.app-nav-link:hover {
+    color: var(--text-primary);
+    background: var(--grey-100);
+}
+
+.app-nav-link.active {
+    color: var(--blue);
+    background: var(--blue-light);
+}
+
+/* Reports */
+.report-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.report-grid h2 {
+    margin-bottom: 1rem;
+}
+
+.report-subhead {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+}
+
+.bar-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.bar-label {
+    width: 100px;
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bar-track {
+    flex: 1;
+    height: 0.6rem;
+    background: var(--grey-100);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    background: var(--blue);
+    border-radius: 999px;
+}
+
+.bar-count {
+    width: 28px;
+    flex-shrink: 0;
+    text-align: right;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.metric-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.metric-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.metric-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.metric-label {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.metric-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.impact-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.impact-col {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.impact-col .stat-value {
+    display: block;
+    font-size: 1.6rem;
+}
+
+.impact-col .stat-label {
+    display: block;
+    margin-top: 0.3rem;
+}
+
+.impact-col .impact-count {
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+.followup-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.followup-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.82rem;
+}
+
+.followup-company {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.followup-role {
+    color: var(--text-tertiary);
+    font-weight: 400;
+}
+
+.followup-date {
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.followup-date.followup-overdue {
+    color: var(--attention-text);
+    font-weight: 700;
+}
+
+.report-empty {
+    font-size: 0.82rem;
+    color: var(--text-tertiary);
 }
