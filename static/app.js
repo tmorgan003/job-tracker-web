@@ -35,9 +35,21 @@
             var company = document.getElementById("new-company");
             if (company) {
                 event.preventDefault();
+                window.location.hash = "add-application";
                 company.focus();
             }
+        } else if (event.key === "Escape" && window.location.hash) {
+            window.location.hash = "";
         }
+    });
+
+    // --- Modal dismiss: click the backdrop to close ------------------------
+    document.querySelectorAll(".modal-overlay").forEach(function (overlay) {
+        overlay.addEventListener("click", function (event) {
+            if (event.target === overlay) {
+                window.location.hash = "";
+            }
+        });
     });
 
     // --- Required-field trim validation (belt-and-suspenders on top of server checks) --

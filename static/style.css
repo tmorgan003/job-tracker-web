@@ -910,6 +910,10 @@ tr.row-followup-due:hover td {
     padding: 1.75rem;
 }
 
+.modal-wide {
+    max-width: 720px;
+}
+
 .modal h3 {
     margin: 0 0 0.6rem;
     font-family: var(--font);

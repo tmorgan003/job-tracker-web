@@ -499,7 +499,7 @@ def add():
     missing = validate_fields(fields)
     if missing:
         flash(missing_fields_message(missing), "error")
-        return redirect(url_for("index"))
+        return redirect(url_for("index", _anchor="add-application"))
     db = get_db()
     duplicate = find_duplicate(db, fields["company"], fields["role"])
     fields["last_status_change"] = fields["date_applied"] or date.today().isoformat()

@@ -1,23 +1,25 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="card">
-    <h2>Add Application</h2>
-    <form method="post" action="{{ url_for('add') }}" class="app-form" data-validate-required>
-        <div class="form-row">
-            <label>
-                Company
-                <input type="text" name="company" id="new-company" required>
-            </label>
-            <label>
-                Role
-                <input type="text" name="role" required>
-            </label>
-            <label>
-                Date Applied
-                <input type="date" name="date_applied" value="{{ today }}" required>
-            </label>
-            <label>
+<div id="add-application" class="modal-overlay">
+    <div class="modal modal-wide">
+        <a href="#" class="modal-close" aria-label="Close">&times;</a>
+        <h3>Add Application</h3>
+        <form method="post" action="{{ url_for('add') }}" class="app-form" data-validate-required>
+            <div class="form-row">
+                <label>
+                    Company
+                    <input type="text" name="company" id="new-company" required>
+                </label>
+                <label>
+                    Role
+                    <input type="text" name="role" required>
+                </label>
+                <label>
+                    Date Applied
+                    <input type="date" name="date_applied" value="{{ today }}" required>
+                </label>
+                <label>
                 Status
                 <select name="status">
                     {% for s in statuses %}
@@ -63,9 +65,10 @@
                 </label>
             </div>
         </fieldset>
-        <button type="submit" class="btn btn-primary">Add Application</button>
-    </form>
-</section>
+            <button type="submit" class="btn btn-primary">Add Application</button>
+        </form>
+    </div>
+</div>
 
 <section class="card stats-bar">
     <div class="stat-tile">
